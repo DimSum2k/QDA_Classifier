@@ -4,3 +4,5 @@ Classification of dog and cat images using a Quadratic Linear Classifier for the
 
 Ref:
 The Elements of Statistical Learning: Data Mining, Inference, and Predic- tion, Trevor Hastie, Robert Tibshirani, Jerome Friedman.
+
+`Rapport.pdf` contains the report of the project.
