@@ -1,0 +1,250 @@
+\documentclass[10pt,a4paper]{report} 
+%\usepackage[utf8]{inputenc}
+\usepackage[frenchb]{babel}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{bbm}
+\usepackage{mathrsfs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\geometry{hmargin=3cm,vmargin=3.5cm}
+\renewcommand{\thesection}{\Roman{section}}
+\newtheorem*{rmq}{Remarque}
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
+
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<echo=FALSE>>=
+knitr::opts_chunk$set(fig.width=5, fig.height=5) 
+@
+
+
+\begin{titlepage}
+	\centering
+	{\scshape\LARGE Classification d'images de chats et de chiens \par}
+	\vspace{0.5cm}
+	{\scshape Projet de Statistique 1, 2eme ann\'ee\par}
+	\vspace{1.5cm}
+	\includegraphics[width=0.3\textwidth]{ensae.png}\par
+	\vspace{1cm}
+	{\huge\bfseries Ensae ParisTech \par}
+	\vspace{2cm}
+	{\Large\itshape Hugo Thimonier \& Dimitri Meunier \par}
+	\vfill
+	% Bottom of the page
+	{\large \today\par}
+	\pagecolor{white}      %blue!15
+\end{titlepage}
+%Modification couleur 1ere page
+
+\pagecolor{white}
+\tableofcontents
+\newpage
+
+\section{D\'ecouverte de la base de donn\'ees et r\'eduction de la dimension}
+
+\subsection{Question 1}
+
+<<echo=FALSE>>=
+load("Xtest.RData")
+load("Ytest.RData")
+load("Xtrain.RData")
+load("Ytrain.RData")
+#class(Xtest) #type : matrix
+#is.matrix(Xtest)
+#attributes(Xtest) #display attributes
+print(c("Train set size : ",dim(Xtrain))) #numbers of images * 40 000
+print(c("Test set size : ",dim(Xtest)))
+par(mfrow=c(2,2), mai=c(0.8,0.1,0.1,0.1)) #display images on a grid
+for (i in c(5,22,45,47)) {
+  mat = matrix(rev(Xtest[i,]), nrow=200, byrow=TRUE)#resize matrix, #dim(mat)=200*200
+  string = "Image of a"
+  if (Ytest[i]==1) string = paste(string,"cat, labelled",toString(1))
+  else string = paste(string,"dog, labelled ",toString(0))
+  
+  image(mat,col = grey(seq(0, 1, length = 256)), xaxt= "n", yaxt= "n", xlab=string  ) #Display image
+}
+   
+#sum(Ytrain==1)/length(Ytrain) #number of positive targets (cats)
+#sum(Ytest==1)/length(Ytest) #number of nagative targets (dogs)
+
+@
+
+
+\section{Analyse discriminante quadratique}
+
+\subsection{Question (4)}
+
+\noindent Par d\'efinition de la vraisemblance on a que 
+$$
+L((c_1,y_1),\hdots,(c_n,y_n)|\theta) = \prod_{i=1}^n f_{c,Y}(c_i,Y_i) = \prod_{i=1}^n f_{Y}(y_i)f_{c|Y_i=y}(c)
+$$
+D\`es lors on a que 
+$$
+\begin{array}{rcl}
+L((c_1,y_1),\hdots,(c_n,y_n)|\theta) & = &  \prod_{i=1}^n \pi^{y_i}(1-\pi)^{1-y_i} \\ \\
+& & \bigg{[}\frac{1}{(2\pi)^{n/2}}(\det\Sigma_1)^{-1/2}exp\{-\frac{1}{2}(c_i-\mu_1)^T\Sigma_1^{-1} (c_i-\mu_1\}\bigg{]}^{\mathbbm{1}_{y_i=1}} \\
+& & \bigg{[}\frac{1}{(2\pi)^{n/2}}(\det\Sigma_0)^{-1/2}exp\{-\frac{1}{2}(c_i-\mu_0)^T\Sigma_0^{-1} (c_i-\mu_0\}\bigg{]}^{\mathbbm{1}_{y_i=0}} \\ \\
+& = & \pi^{\sum_i y_i}(1-\pi)^{n-\sum_i y_i}\\ \\
+& & \bigg{[}\frac{1}{(2\pi)^{n/2}}(\det\Sigma_1)^{-1/2}\bigg{]}^{\sum_i y_i}\bigg{[}\frac{1}{(2\pi)^{n/2}}(\det\Sigma_0)^{-1/2}\bigg{]}^{n-\sum_i y_i} \\ \\
+& & exp\bigg{\{}-\frac{1}{2}\big{[}\sum_{i,Y_i = 1}(c_i-\mu_1)^T\Sigma_1^{-1} (c_i-\mu_1)+\sum_{i,Y_i = 0}(c_i-\mu_0)^T\Sigma_0^{-1} (c_i-\mu_0)\big{]}\bigg{\}} \\ \\
+& = & \pi^{N_1}(1-\pi)^{N_2}\\ \\
+& & \bigg{[}\frac{1}{(2\pi)^{n/2}}(\det\Sigma_1)^{-1/2}\bigg{]}^{N_1}\bigg{[}\frac{1}{(2\pi)^{n/2}}(\det\Sigma_0)^{-1/2}\bigg{]}^{N_2} \\ \\
+& & exp\bigg{\{}-\frac{1}{2}\big{[}\sum_{i,Y_i = 1}(c_i-\mu_1)^T\Sigma_1^{-1} (c_i-\mu_1)+\sum_{i,Y_i = 0}(c_i-\mu_0)^T\Sigma_0^{-1} (c_i-\mu_0)\big{]}\bigg{\}} \\
+\end{array}
+$$
+Ainsi, la log-vraisemblance est donc de la forme,
+\begin{equation}
+\begin{array}{rcl}
+l((c_1,y_1),\hdots,(c_n,y_n)|\theta) & = & \displaystyle{N_1 \log(\pi) + N_2 \log(1-\pi) - \frac{N_1}{2}\log(\det(\Sigma_1))}\\ \\
+& & \displaystyle{- \frac{1}{2}\sum_{i,Y_i = 1}(c_i-\mu_1)^T \Sigma_1^{-1}(c_i-\mu_1) - \frac{N_2}{2}\log(\det(\Sigma_0))} \\ \\
+& & \displaystyle{-\frac{1}{2}\sum_{i,Y_i = 0}(c_i-\mu_0)^T \Sigma_0^{-1}(c_i-\mu_0) + \mbox{constante}}
+\end{array}
+\end{equation}
+
+
+\subsection{Question (5)}
+\noindent L'estimateur du maximum de vraisemblance pour $\pi$ est obtenu par la CPO, on a :
+$$
+\begin{array}{rcl}
+\displaystyle{\frac{\partial l((c_1,y_1),\hdots,(c_n,y_n)|\theta)}{\partial\pi}} & = & 0 \\ \\
+\displaystyle{\frac{N_1}{\pi} - \frac{N_2}{1-\pi}} & = & 0 \\ \\
+(1-\pi)N_1 & = & N_2 \pi \\ \\
+N_1 & = & n \pi \\ \\
+\hat{\pi} & = & \displaystyle{\frac{N_1}{n}} \\
+\end{array}
+$$
+Pour $\mu_1$ et $\mu_0$ le calcul est rigoureusement le m\^eme, voici celui pour $\mu_1$ \`a nouveau gr\^ace \`a la CPO : 
+$$
+\begin{array}{rcl}
+\displaystyle{\frac{\partial l((c_1,y_1),\hdots,(c_n,y_n)|\theta)}{\partial\mu_1}} & = & 0 \\ \\
+\displaystyle{\frac{\partial}{\partial \mu_1} \sum_{i,Y_i = 1}(c_i-\mu_1)^T\Sigma_1^{-1} (c_i-\mu_1)} & = & 0  \\ \\
+\displaystyle{\frac{\partial}{\partial \mu_1}\bigg{\{}}\sum_{i,Y_i = 1}c_i^T\Sigma_1^{-1}c_i - c_i^T\Sigma_1^{-1}\mu_1 - \mu_1^T\Sigma_1^{-1}c_i \mu_1^T\Sigma_1^{-1}\mu_1\bigg{\}} & = & 0 \\ \\
+\displaystyle{\sum_{i,Y_i = 1}(-(\Sigma_1^{-1})^T c_i - \Sigma_1^{-1} c_i + \big{(} \Sigma_1^{-1} + (\Sigma_1^{-1})^T \big{)}\mu_1 } & = & 0
+\end{array}
+$$
+En tant que matrice de variance-covariance $\Sigma_1$ et $\Sigma_0$ sont sym\'etriques, il en va de m\^eme pour leurs inverses, ainsi $\Sigma_1^{-1} = (\Sigma_1^{-1})^T$ et $\Sigma_0^{-1} = (\Sigma_0^{-1})^T$. D\`es lors,
+$$
+\begin{array}{rcl}
+\displaystyle{2\sum_{i,Y_i = 1}\Sigma_1^{-1} c_i} & = & \displaystyle{2 N_1\Sigma_1^{-1}\mu_1} \\ \\
+\displaystyle{\sum_{i,Y_i = 1}\Sigma_1 \Sigma_1^{-1} c_i} & = & N_1 \mu_1 \\ \\
+\displaystyle{\hat \mu_1} & = & \displaystyle{\frac{1}{N_1}\sum_{i,Y_i = 1} c_i}
+\end{array}
+$$
+De m\^eme, 
+$$
+\hat \mu_0 =  \frac{1}{N_2}\sum_{i,Y_i = 0} c_i
+$$
+De m\^eme pour $\Sigma_1$ et $\Sigma_0$ les r\'esultats sont rigoureusement identiques, on a 
+$$
+\begin{array}{rcl}
+\displaystyle{\frac{\partial l((c_1,y_1),\hdots,(c_n,y_n)|\theta)}{\partial\Sigma_1}} & = & 0 \\ \\
+\displaystyle{\frac{N_1}{2}\Sigma_1^{-1} -  \frac{1}{2}\sum_{i,Y_i=1} \Sigma_1^{-1}(c_i-\mu_1)(c_I-\mu_1)^T\Sigma_1^{-1}} & = & 0 \\ \\
+\displaystyle{\Sigma_1^{-1}} & = & \displaystyle{\sum_{i,Y_i=1} \Sigma_1^{-1}(c_i-\mu_1)(c_I-\mu_1)^T\Sigma_1^{-1}} \\ \\
+1 & = & \displaystyle{\Sigma_1^{-1}\frac{1}{N_1}\sum_{i,Y_i=1}(c_i-\mu_1)(c_i-\mu_1)^T} \\ \\
+\displaystyle{\hat \Sigma_1} & = & \displaystyle{\frac{1}{N_1}\sum_{i,Y_i=1}(c_i-\mu_1)(c_i-\mu_1)^T}
+\end{array}
+$$
+Ainsi on obtient que 
+$$
+\begin{array}{rcl}
+\displaystyle{\hat \Sigma_1} & = & \displaystyle{\frac{1}{N_1}\sum_{i,Y_i=1}(c_i-\hat \mu_1)(c_i-\hat \mu_1)^T} \\ \\
+\displaystyle{\hat \Sigma_0} & = & \displaystyle{\frac{1}{N_2}\sum_{i,Y_i=0}(c_i-\hat \mu_0)(c_i-\hat \mu_0)^T}
+\end{array}
+$$
+Les estimateurs du maximum de vraisemblance sont donc
+$$
+\left \{
+\begin{array}{rcl}
+\hat{\pi} & = & \displaystyle{\frac{N_1}{n}} \\ \\
+\displaystyle{\hat \mu_1} & = & \displaystyle{\frac{1}{N_1}\sum_{i,Y_i = 1} c_i} \\ \\
+\hat \mu_0 & = &  \displaystyle{\frac{1}{N_2}\sum_{i,Y_i = 0} c_i} \\ \\
+\displaystyle{\hat \Sigma_1} & = & \displaystyle{\frac{1}{N_1}\sum_{i,Y_i=1}(c_i-\mu_1)(c_i-\mu_1)^T} \\ \\
+\displaystyle{\hat \Sigma_0} & = & \displaystyle{\frac{1}{N_2}\sum_{i,Y_i=0}(c_i-\mu_0)(c_i-\mu_0)^T}
+\end{array}
+\right.
+$$
+
+
+\subsection{Question (6)}
+
+\noindent Le sous-gradient $\nabla_{\pi,\mu_1,\mu_0}l(\theta)$ est de la forme 
+$$
+\nabla_{\pi,\mu_0,\mu_1}l(\theta) = 
+\begin{pmatrix} 
+\frac{N_1}{\pi} - \frac{N_2}{1-\pi} \\
+-2\sum_{i,Y_i = 1}\Sigma_1^{-1} c_i + \Sigma_1^{-1}\mu_1 \\
+-2\sum_{i,Y_i = 0}\Sigma_1^{-1} c_i + \Sigma_1^{-1}\mu_0
+\end{pmatrix}
+$$
+Par cons\'equent on obtient la sous-hessienne suivante
+$$
+\nabla_{\pi,\mu_0,\mu_1}^2l(\theta) = 
+\begin{pmatrix} 
+-\frac{N_1}{\pi^2} - \frac{N_2}{(1-\pi)^2} & 0 & 0 \\
+0 & -2 N_1\Sigma_1^{-1}& 0 \\
+0 & 0 & -2 N_1\Sigma_0^{-1}
+\end{pmatrix}
+$$
+La matrice \'etant diagonale avec tous ses \'el\'ements diagonaux n\'egatifs, elle est d\'efinie n\'egative.
+
+\subsection{Question (7)}
+$$
+\mathbb{E}[\hat \pi]= \mathbb{E}\bigg{[}\frac{\sum_{i=1}^n y_i}{n}\bigg{]} = \frac{1}{n}\sum_i \mathbb{E}[y_i] = \mathbb{E}[y_i] = \pi
+$$
+$$
+\mathbb{E}[\hat \mu_1] = \mathbb{E}\bigg{[}\frac{1}{N_1} \sum_{i,y_i=1} c_i \bigg{]}=\mathbb{E}\bigg{[}\frac{1}{N_1} \mathbb{E}\bigg{[}\sum_{i,y_i=1} c_i\bigg{|}y_1, \hdots , y_n \bigg{]} \bigg{]} = \mathbb{E}\bigg{[}\frac{1}{N_1}\sum_{i,Y_i=1} \mu_1 \bigg{]} = \mu_1
+$$
+$$
+\mathbb{E}[\hat \mu_0] = \mathbb{E}\bigg{[}\frac{1}{N_2} \sum_{i,y_i=0} c_i \bigg{]}=\mathbb{E}\bigg{[}\frac{1}{N_2} \mathbb{E}\bigg{[}\sum_{i,y_i=0} c_i\bigg{|}y_1, \hdots , y_n\bigg{]} \bigg{]} = \mathbb{E}\bigg{[}\frac{1}{N_2}\sum_{i,Y_i=0} \mu_0 \bigg{]} = \mu_0
+$$
+\subsection{Question (8)}
+On a que $\mathbb{E}[Y] = \pi$, d\`es lors l'estimateur de la m\'ethode des moments est
+$$
+\pi^{MM} = \bar Y = \frac{1}{n} \sum_i y_i = \frac{N_1}{n} = \hat \pi
+$$
+De m\^eme on a que $\mathbb{E}[C|Y=1] = \mu_1$, ainsi l'estimateur de la m\'ethode des moments est le moment empirique de 
+$$
+\mathbb{E}[C|Y=1]= \frac{\mathbb{E}[C\mathbbm{1}\{Y=1\}]}{\mathbb{E}[\mathbbm{1}\{Y=1\}]}
+$$
+\`a savoir 
+$$
+\mu_1^{MM}=\frac{\frac{1}{n}\sum_{i,y_i=1}c_i}{\frac{1}{n}\sum_{i,y_i=1}y_i}= \frac{\sum_{i,y_i=1}c_i}{\sum_{i}y_i} = \frac{\sum_{i,y_i=1}c_i}{N_1} = \hat \mu_1
+$$
+De m\^eme on a que $\mathbb{E}[C|Y=0] = \mu_0$, ainsi l'estimateur de la m\'ethode des moments est le moment empirique de 
+$$
+\mathbb{E}[C|Y=0]= \frac{\mathbb{E}[C\mathbbm{1}\{Y=0\}]}{\mathbb{E}[\mathbbm{1}\{Y=0\}]}
+$$
+\`a savoir 
+$$
+\mu_0^{MM}=\frac{\frac{1}{n}\sum_{i,y_i=0}c_i}{\frac{1}{n}\sum_{i,y_i=0}y_i}= \frac{\sum_{i,y_i=1}c_i}{\sum_{i}(1-y_i)} = \frac{\sum_{i,y_i=1}c_i}{N_2} = \hat \mu_0
+$$
+Enfin, on a que $\mathbb{V}(C|Y=1) = \Sigma_1$, l'estimateur de la m\'ethode des moments est donc le moment empirique de 
+$$
+\mathbb{V}(C|Y=1) = \mathbb{E}[(c-\mu_1)(c-\mu_1)^T|Y=1]
+$$
+\`a savoir 
+$$
+\Sigma_1^{MM}= \frac{1}{N_1}\sum_{i,Y_i=1}(c_i-\mu_1)(c_i-\mu_1)^T = \hat \Sigma_1
+$$ 
+De m\^eme pour $\Sigma_0^{MM}$,
+$$
+\Sigma_0^{MM}= \frac{1}{N_2}\sum_{i,Y_i=0}(c_i-\mu_0)(c_i-\mu_0)^T = \hat \Sigma_0
+$$
+
+
+
+
+
+
+\end{document}
+
+
+
